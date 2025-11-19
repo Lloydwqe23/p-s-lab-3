@@ -1,0 +1,129 @@
+---
+title: 'Lab assignment 3'
+author: ""
+output:
+  html_document:
+    df_print: paged
+---
+
+## Work breakdown:
+
+#### Next, generate the messages
+
+# Part I: Parameter estimation
+### Task 1
+
+
+### Task 2
+The Poisson distribution $P(\theta)$ has mean $E[X] = \theta$ and variance $Var[X] = \theta$. Our team id number is 23.\
+We aim to evaluate different methods of constructing confidence intervals for the parameter θ of a Poisson distribution. The key questions are:\
+1)How well do different CI methods capture the true parameter 𝜃 with the prescribed confidence level 1-a?\
+2)How do the lengths of the intervals compare in terms of precision?\
+3)Which method is the most practical and reliable for Poisson-distributed data?\
+Our main question is how well do the three proposed confidence interval constructions perform in capturing the true parameter $\theta$ for samples drawn from a Poisson distribution?\
+We will assess this by estimating the coverage probability (the fraction of times the interval contains $\theta$) and the precision (the average length of the interval) for different sample sizes $n$.\
+
+1.Known Variance: Assuming $\theta$ is known for the variance $\sigma^2 = \theta$.The $1-\alpha$ confidence interval for $\theta$ is derived from $|Z| = |\frac{\sqrt{n}(\bar{X}_n - \theta)}{\sqrt{\theta}}| \le z_{\alpha/2}$, where $z_{\alpha/2}$ is the $(1-\alpha/2)$-th quantile of $N(0, 1)$.$$\left[\bar{X}_n - z_{\alpha/2}\frac{\sqrt{\theta}}{\sqrt{n}}, \quad \bar{X}_n + z_{\alpha/2}\frac{\sqrt{\theta}}{\sqrt{n}}\right]$$\
+2.Parameter-Independent: From Part (2), the defining inequality is $\frac{n(\bar{X}_n - \theta)^2}{\theta} \le z_{\alpha/2}^2$. This is a quadratic inequality in $\sqrt{\theta}$. Solving $\frac{n(\bar{X}_n - \theta)^2}{\theta} = z_{\alpha/2}^2$ for $\theta$ yields the limits:$$\theta_{\pm} = \bar{X}_n + \frac{z_{\alpha/2}^2}{2n} \pm \frac{z_{\alpha/2}}{\sqrt{n}} \sqrt{\bar{X}_n + \frac{z_{\alpha/2}^2}{4n}}$$The $1-\alpha$ confidence interval is:$$\left[\bar{X}_n + \frac{z_{\alpha/2}^2}{2n} - \frac{z_{\alpha/2}}{\sqrt{n}} \sqrt{\bar{X}_n + \frac{z_{\alpha/2}^2}{4n}}, \quad \bar{X}_n + \frac{z_{\alpha/2}^2}{2n} + \frac{z_{\alpha/2}}{\sqrt{n}} \sqrt{\bar{X}_n + \frac{z_{\alpha/2}^2}{4n}}\right]$$
+3.
+
+```{r}
+id <- 23
+set.seed(id)
+theta <- id/10
+M <- 10000
+N_small <- 50
+N_large <- 200
+alpha_vals <- c(0.1, 0.05, 0.01)
+
+run_simulation <- function(n, theta, M, alpha_vals) {
+    x <- matrix(rpois(n * M, lambda = theta), nrow = n)
+
+    sample_mean <- colMeans(x)
+
+    results <- list()
+    for (alpha in alpha_vals) {
+        z_alpha2 <- qnorm(1 - alpha / 2)
+        
+        # --- Part (2): Theoretical CI (known variance theta, for comparison) ---
+        # CI_2: [X_bar - z_a/2 * sqrt(theta/n), X_bar + z_a/2 * sqrt(theta/n)]
+        L2 <- sample_mean - z_alpha2 * sqrt(theta / n)
+        U2 <- sample_mean + z_alpha2 * sqrt(theta / n)
+        coverage2 <- mean(theta >= L2 & theta <= U2)
+        length2 <- 2 * z_alpha2 * sqrt(theta / n) # CI length is constant here
+        
+        # --- Part (3): Parameter-Independent CI (Solving quadratic) ---
+        # CI_3: [X_bar + z^2/(2n) +/- (z/sqrt(n)) * sqrt(X_bar + z^2/(4n))]
+        a <- z_alpha2^2 / (2 * n)
+        b <- (z_alpha2 / sqrt(n))
+        
+        L3 <- sample_mean + a - b * sqrt(sample_mean + a / 2) # Note: a/2 = z^2/(4n)
+        U3 <- sample_mean + a + b * sqrt(sample_mean + a / 2)
+        
+        coverage3 <- mean(theta >= L3 & theta <= U3)
+        length3 <- U3 - L3 # CI length is variable
+        
+        # --- Part (4): Estimated Variance (Wald/Plug-in CI) ---
+        # CI_4: [X_bar - z_a/2 * sqrt(X_bar/n), X_bar + z_a/2 * sqrt(X_bar/n)]
+        # Note: We cap X_bar at a tiny positive value to avoid sqrt(0) error if all samples are 0.
+        sample_sd <- apply(x, 2, sd)       # sample SD for each simulation
+        se <- sample_sd / sqrt(n)          # standard error of the mean
+        t_alpha2 <- qt(1 - alpha/2, df = n-1)  # t quantile
+
+        L4 <- sample_mean - t_alpha2 * se
+        U4 <- sample_mean + t_alpha2 * se
+
+        coverage4 <- mean(theta >= L4 & theta <= U4)
+        length4 <- U4 - L4
+        
+        results[[paste0("alpha_", alpha)]] <- list(
+            Coverage = c(CI2=coverage2, CI3=coverage3, CI4=coverage4),
+            Avg_Length = c(CI2=mean(length2), CI3=mean(length3), CI4=mean(length4))
+        )
+    }
+    return(results)
+}
+
+results_N50 <- run_simulation(N_small, theta, M, alpha_vals)
+results_N200 <- run_simulation(N_large, theta, M, alpha_vals)
+
+# --- Output the results ---
+cat("\n## 📊 Simulation Results (theta = 2.3) ##\n")
+cat("\n### 🔬 Sample Size n = 50: Coverage Probability ###\n")
+print(do.call(rbind, lapply(results_N50, function(x) x$Coverage)))
+
+cat("\n### 🔬 Sample Size n = 50: Average CI Length ###\n")
+print(do.call(rbind, lapply(results_N50, function(x) x$Avg_Length)))
+
+cat("\n### 🔬 Sample Size n = 200: Coverage Probability ###\n")
+print(do.call(rbind, lapply(results_N200, function(x) x$Coverage)))
+
+cat("\n### 🔬 Sample Size n = 200: Average CI Length ###\n")
+print(do.call(rbind, lapply(results_N200, function(x) x$Avg_Length)))
+
+# --- Plotting the sample means (Illustrative Statistics) ---
+cat("\n## 📈 Illustrative Statistics and Histograms ##\n")
+cat(paste("True Parameter theta:", theta, "\n"))
+# Note: Re-running the simulation setup to get fresh data for descriptive stats
+x_n50_all <- matrix(rpois(N_small * M, lambda = theta), nrow = N_small)
+x_n200_all <- matrix(rpois(N_large * M, lambda = theta), nrow = N_large)
+cat(paste("Mean of Sample Means (n=50):", mean(colMeans(x_n50_all)), "\n"))
+cat(paste("Mean of Sample Means (n=200):", mean(colMeans(x_n200_all)), "\n"))
+
+# Generate sample means for plotting
+x_n50 <- colMeans(x_n50_all)
+x_n200 <- colMeans(x_n200_all)
+```{r}
+
+
+### Justification
+The foundation of all three confidence intervals is the Central Limit Theorem (CLT).$$\frac{\sqrt{n}(\bar{X}_n - \theta)}{\sigma} \stackrel{d}{\to} N(0, 1) \quad \text{as } n \to \infty$$For the Poisson distribution $P(\theta)$, the standard deviation is $\sigma = \sqrt{\theta}$.Therefore, the statistic $Z = \frac{\sqrt{n}(\bar{X}_n - \theta)}{\sqrt{\theta}}$ is approximately standard normal $N(0, 1)$ for large $n$.\
+1)2nd method directly uses the statistic $Z$ and the approximation $P(|Z| \le z_{\alpha/2}) \approx 1-\alpha$. The coverage is expected to be close to $1-\alpha$ due to the CLT. The simulation confirms this, with coverages very close to the target.\
+2)4rd method liminates θ from the CI by solving a quadratic inequality; this ensures coverage without knowing the true variance.\
+3)4th method Uses the sample standard deviation and the t-distribution, making it practical for real-world scenarios where θ is unknown.
+
+### Conclusion
+
+
+# Part II: Unbiasedness of Estimators
+### Task 3
