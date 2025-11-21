@@ -4,6 +4,9 @@ author: ""
 output:
   html_document:
     df_print: paged
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ## Work breakdown:
@@ -11,20 +14,42 @@ output:
 #### Next, generate the messages
 
 # Part I: Parameter estimation
+
 ### Task 1
 
-
 ### Task 2
-The Poisson distribution $P(\theta)$ has mean $E[X] = \theta$ and variance $Var[X] = \theta$. Our team id number is 23.\
-We aim to evaluate different methods of constructing confidence intervals for the parameter θ of a Poisson distribution. The key questions are:\
-1)How well do different CI methods capture the true parameter 𝜃 with the prescribed confidence level 1-a?\
-2)How do the lengths of the intervals compare in terms of precision?\
-3)Which method is the most practical and reliable for Poisson-distributed data?\
-Our main question is how well do the three proposed confidence interval constructions perform in capturing the true parameter $\theta$ for samples drawn from a Poisson distribution?\
-We will assess this by estimating the coverage probability (the fraction of times the interval contains $\theta$) and the precision (the average length of the interval) for different sample sizes $n$.\
 
-1.Known Variance: Assuming $\theta$ is known for the variance $\sigma^2 = \theta$.The $1-\alpha$ confidence interval for $\theta$ is derived from $|Z| = |\frac{\sqrt{n}(\bar{X}_n - \theta)}{\sqrt{\theta}}| \le z_{\alpha/2}$, where $z_{\alpha/2}$ is the $(1-\alpha/2)$-th quantile of $N(0, 1)$.$$\left[\bar{X}_n - z_{\alpha/2}\frac{\sqrt{\theta}}{\sqrt{n}}, \quad \bar{X}_n + z_{\alpha/2}\frac{\sqrt{\theta}}{\sqrt{n}}\right]$$\
-2.Parameter-Independent: From Part (2), the defining inequality is $\frac{n(\bar{X}_n - \theta)^2}{\theta} \le z_{\alpha/2}^2$. This is a quadratic inequality in $\sqrt{\theta}$. Solving $\frac{n(\bar{X}_n - \theta)^2}{\theta} = z_{\alpha/2}^2$ for $\theta$ yields the limits:$$\theta_{\pm} = \bar{X}_n + \frac{z_{\alpha/2}^2}{2n} \pm \frac{z_{\alpha/2}}{\sqrt{n}} \sqrt{\bar{X}_n + \frac{z_{\alpha/2}^2}{4n}}$$The $1-\alpha$ confidence interval is:$$\left[\bar{X}_n + \frac{z_{\alpha/2}^2}{2n} - \frac{z_{\alpha/2}}{\sqrt{n}} \sqrt{\bar{X}_n + \frac{z_{\alpha/2}^2}{4n}}, \quad \bar{X}_n + \frac{z_{\alpha/2}^2}{2n} + \frac{z_{\alpha/2}}{\sqrt{n}} \sqrt{\bar{X}_n + \frac{z_{\alpha/2}^2}{4n}}\right]$$
+The Poisson distribution $P(\theta)$ has mean $E[X] = \theta$ and
+variance $Var[X] = \theta$. Our team id number is 23.\
+We aim to evaluate different methods of constructing confidence
+intervals for the parameter θ of a Poisson distribution. The key
+questions are:\
+1)How well do different CI methods capture the true parameter 𝜃 with the
+prescribed confidence level 1-a?\
+2)How do the lengths of the intervals compare in terms of precision?\
+3)Which method is the most practical and reliable for
+Poisson-distributed data?\
+Our main question is how well do the three proposed confidence interval
+constructions perform in capturing the true parameter $\theta$ for
+samples drawn from a Poisson distribution?\
+We will assess this by estimating the coverage probability (the fraction
+of times the interval contains $\theta$) and the precision (the average
+length of the interval) for different sample sizes $n$.\
+
+1.Known Variance: Assuming $\theta$ is known for the variance
+$\sigma^2 = \theta$.The $1-\alpha$ confidence interval for $\theta$ is
+derived from
+$|Z| = |\frac{\sqrt{n}(\bar{X}_n - \theta)}{\sqrt{\theta}}| \le z_{\alpha/2}$,
+where $z_{\alpha/2}$ is the $(1-\alpha/2)$-th quantile of
+$N(0, 1)$.$$\left[\bar{X}_n - z_{\alpha/2}\frac{\sqrt{\theta}}{\sqrt{n}}, \quad \bar{X}_n + z_{\alpha/2}\frac{\sqrt{\theta}}{\sqrt{n}}\right]$$\
+2.Parameter-Independent: From Part (2), the defining inequality is
+$\frac{n(\bar{X}_n - \theta)^2}{\theta} \le z_{\alpha/2}^2$. This is a
+quadratic inequality in $\sqrt{\theta}$. Solving
+$\frac{n(\bar{X}_n - \theta)^2}{\theta} = z_{\alpha/2}^2$ for $\theta$
+yields the
+limits:$$\theta_{\pm} = \bar{X}_n + \frac{z_{\alpha/2}^2}{2n} \pm \frac{z_{\alpha/2}}{\sqrt{n}} \sqrt{\bar{X}_n + \frac{z_{\alpha/2}^2}{4n}}$$The
+$1-\alpha$ confidence interval
+is:$$\left[\bar{X}_n + \frac{z_{\alpha/2}^2}{2n} - \frac{z_{\alpha/2}}{\sqrt{n}} \sqrt{\bar{X}_n + \frac{z_{\alpha/2}^2}{4n}}, \quad \bar{X}_n + \frac{z_{\alpha/2}^2}{2n} + \frac{z_{\alpha/2}}{\sqrt{n}} \sqrt{\bar{X}_n + \frac{z_{\alpha/2}^2}{4n}}\right]$$
 3.
 
 ```{r}
@@ -113,17 +138,272 @@ cat(paste("Mean of Sample Means (n=200):", mean(colMeans(x_n200_all)), "\n"))
 # Generate sample means for plotting
 x_n50 <- colMeans(x_n50_all)
 x_n200 <- colMeans(x_n200_all)
-```{r}
-
+```
 
 ### Justification
-The foundation of all three confidence intervals is the Central Limit Theorem (CLT).$$\frac{\sqrt{n}(\bar{X}_n - \theta)}{\sigma} \stackrel{d}{\to} N(0, 1) \quad \text{as } n \to \infty$$For the Poisson distribution $P(\theta)$, the standard deviation is $\sigma = \sqrt{\theta}$.Therefore, the statistic $Z = \frac{\sqrt{n}(\bar{X}_n - \theta)}{\sqrt{\theta}}$ is approximately standard normal $N(0, 1)$ for large $n$.\
-1)2nd method directly uses the statistic $Z$ and the approximation $P(|Z| \le z_{\alpha/2}) \approx 1-\alpha$. The coverage is expected to be close to $1-\alpha$ due to the CLT. The simulation confirms this, with coverages very close to the target.\
-2)4rd method liminates θ from the CI by solving a quadratic inequality; this ensures coverage without knowing the true variance.\
-3)4th method Uses the sample standard deviation and the t-distribution, making it practical for real-world scenarios where θ is unknown.
+
+The foundation of all three confidence intervals is the Central Limit
+Theorem
+(CLT).$$\frac{\sqrt{n}(\bar{X}_n - \theta)}{\sigma} \stackrel{d}{\to} N(0, 1) \quad \text{as } n \to \infty$$For
+the Poisson distribution $P(\theta)$, the standard deviation is
+$\sigma = \sqrt{\theta}$.Therefore, the statistic
+$Z = \frac{\sqrt{n}(\bar{X}_n - \theta)}{\sqrt{\theta}}$ is
+approximately standard normal $N(0, 1)$ for large $n$.\
+1)2nd method directly uses the statistic $Z$ and the approximation
+$P(|Z| \le z_{\alpha/2}) \approx 1-\alpha$. The coverage is expected to
+be close to $1-\alpha$ due to the CLT. The simulation confirms this,
+with coverages very close to the target.\
+2)4rd method liminates θ from the CI by solving a quadratic inequality;
+this ensures coverage without knowing the true variance.\
+3)4th method Uses the sample standard deviation and the t-distribution,
+making it practical for real-world scenarios where θ is unknown.
 
 ### Conclusion
 
-
 # Part II: Unbiasedness of Estimators
+
 ### Task 3
+
+```{r}
+set.seed(42)
+n <- 100
+mu <- 10
+sigma_squared <- 4
+sigma <- sqrt(sigma_squared)
+dataset <- rnorm(n, mean = mu, sd = sigma)
+head(dataset)
+## [1] 12.741917 8.870604 10.726257 11.265725 10.808537 9.787751
+cat("Population Mean (mu):", mu, "\n")
+## Population Mean (mu): 10
+cat("Population Variance (sigma_squared):", sigma_squared, "\n")
+## Population Variance (sigma_squared): 4
+sample_mean <- mean(dataset)
+sample_variance <- var(dataset)
+cat("Sample Mean:", sample_mean, "\n")
+## Sample Mean: 10.06503
+cat("Sample Variance:", sample_variance, "\n")
+## Sample Variance: 4.337697
+```
+
+## Task a)
+
+```{r}
+
+sigma_n_sq_single <- (1/n) * sum((dataset - sample_mean)^2)
+sigma_n_minus_1_sq_single <- (1/(n-1)) * sum((dataset - sample_mean)^2)
+
+cat("Task a) \n")
+cat(paste("True Population Variance (sigma^2):", sigma_squared, "\n"))
+cat(paste("Biased Estimator (sigma_n^2):", sigma_n_sq_single, "\n"))
+cat(paste("Unbiased Estimator (sigma_n-1^2):", sigma_n_minus_1_sq_single, "\n"))
+```
+
+## Task b)
+
+```{r}
+
+
+N_vals <- c(10, 50, 100, 1000)
+
+results_b <- data.frame(
+    n = integer(),
+    sigma_n_sq = numeric(),
+    sigma_n_minus_1_sq = numeric()
+)
+
+for (current_n in N_vals) {
+    current_dataset <- rnorm(current_n, mean = mu, sd = sigma)
+
+    sum_sq_dev <- sum((current_dataset - current_sample_mean)^2)
+
+    # Calculate Biased Estimator (sigma_n^2)
+    sigma_n_sq_calc <- sum_sq_dev / current_n
+
+    # Calculate Unbiased Estimator (sigma_n-1^2)
+    sigma_n_minus_1_sq_calc <- sum_sq_dev / (current_n - 1)
+
+    results_b <- rbind(results_b, data.frame(
+        n = current_n,
+        sigma_n_sq = sigma_n_sq_calc,
+        sigma_n_minus_1_sq = sigma_n_minus_1_sq_calc
+    ))
+}
+print(results_b)
+
+# In part b) sigma_n_sq is closer to theoretical sigma_sq when the sample variance > theoretical one.
+# That`s because sigma_n_sq is always less than sigma_n_minus_1_sq
+```
+
+## Task c)
+
+```{r}
+
+
+run_bias_simulation <- function(n, mu, sigma_squared, M) {
+    samples_matrix <- matrix(rnorm(n * M, mean = mu, sd = sqrt(sigma_squared)), nrow = n)
+    sample_means <- colMeans(samples_matrix)
+
+    # Calculate Sum of Squared Deviations (SSD)
+    deviations <- samples_matrix - matrix(sample_means, nrow = n, ncol = M, byrow = TRUE)
+    sum_sq_dev <- colSums(deviations^2)
+
+    # Biased Estimator (divides by n)
+    sigma_n_sq_vals <- sum_sq_dev / n
+    # Unbiased Estimator (divides by n-1)
+    sigma_n_minus_1_sq_vals <- sum_sq_dev / (n - 1)
+
+    # Calculate Expected Values (Average over M simulations)
+    E_sigma_n_sq <- mean(sigma_n_sq_vals)
+    E_sigma_n_minus_1_sq <- mean(sigma_n_minus_1_sq_vals)
+
+    # Bias = Expected Value - True Parameter
+    Bias_n <- E_sigma_n_sq - sigma_squared
+    Bias_n_minus_1 <- E_sigma_n_minus_1_sq - sigma_squared
+    return(data.frame(
+        n = n,
+        True_Var = sigma_squared,
+        E_sigma_n_sq = E_sigma_n_sq,
+        Bias_sigma_n_sq = Bias_n,
+        E_sigma_n_minus_1_sq = E_sigma_n_minus_1_sq,
+        Bias_sigma_n_minus_1_sq = Bias_n_minus_1
+    ))
+}
+
+M_sim <- 10000
+
+results_list <- lapply(N_vals, run_bias_simulation, mu=mu, sigma_squared=sigma_squared, M=M_sim)
+final_results_c <- do.call(rbind, results_list)
+
+print(final_results_c)
+
+```
+
+## Task d)
+
+We observe different behaviours of estimators:
+
+The Unbiased Estimator (sigma_n-1\^2): The expected value
+E[sigma_n-1\^2] remains consistently close to the true population
+variance (sigma\^2 = 4) for all sample sizes (n=10, 50, 100, 1000). The
+calculated bias is small regardless of n. This confirms that
+sigma_n-1\^2 is an unbiased estimator.
+
+The Biased Estimator (sigma_n\^2): For small sample sizes (e.g., n=10),
+this estimator significantly underestimates the true variance
+(E[sigma_10\^2] is approx 3.6, which is 10% lower than 4). As n
+increases, the underestimation becomes smaller. At n=10, the bias is
+large (approx -0.4), but at n=1000, the bias is very small (approx
+-0.004), making the estimate nearly identical to the unbiased one.
+
+Mathematical Reason: This happens because the ratio (n-1)/n approaches 1
+as n approaches infinity. Therefore, the limit of E[sigma_n\^2] as n
+approaches infinity equals sigma\^2.
+
+Conclusion: While sigma_n\^2 is biased for finite samples, it is
+asymptotically unbiased. The difference between the two estimators is
+critical for small datasets but becomes small for very large datasets.
+For statistics sigma_n-1\^2 is always preferred.
+
+## Task e)
+
+We aim to derive the expected values for both estimators:
+$$\sigma_n^2 = \frac{1}{n} \sum_{i=1}^n (X_i - \overline{X})^2 \quad \text{and} \quad \sigma_{n-1}^2 = \frac{1}{n-1} \sum_{i=1}^n (X_i - \overline{X})^2$$
+
+First, let us analyze the expected value of the sum of squared
+deviations: $E\left[ \sum_{i=1}^n (X_i - \overline{X})^2 \right]$.
+
+We add and subtract the true population mean $\mu$ inside the summation:
+$$\sum_{i=1}^n (X_i - \overline{X})^2 = \sum_{i=1}^n ((X_i - \mu) - (\overline{X} - \mu))^2$$
+
+Expanding the squared term $(a-b)^2 = a^2 - 2ab + b^2$:
+$$= \sum_{i=1}^n \left( (X_i - \mu)^2 - 2(X_i - \mu)(\overline{X} - \mu) + (\overline{X} - \mu)^2 \right)$$
+
+Distributing the summation:
+$$= \sum_{i=1}^n (X_i - \mu)^2 - 2(\overline{X} - \mu) \sum_{i=1}^n (X_i - \mu) + \sum_{i=1}^n (\overline{X} - \mu)^2$$
+
+Note that $\sum_{i=1}^n (X_i - \mu) = n(\overline{X} - \mu)$ and
+$\sum_{i=1}^n (\overline{X} - \mu)^2 = n(\overline{X} - \mu)^2$.
+Substituting these back:
+$$= \sum_{i=1}^n (X_i - \mu)^2 - 2n(\overline{X} - \mu)^2 + n(\overline{X} - \mu)^2$$
+$$= \sum_{i=1}^n (X_i - \mu)^2 - n(\overline{X} - \mu)^2$$
+
+**Applying Expectation** Now we take the expected value of the
+simplified expression:
+$$E\left[ \sum_{i=1}^n (X_i - \overline{X})^2 \right] = \sum_{i=1}^n E[(X_i - \mu)^2] - n E[(\overline{X} - \mu)^2]$$
+
+Recall the definitions of population variance and variance of the sample
+mean: 1. $E[(X_i - \mu)^2] = Var(X) = \sigma^2$ 2.
+$E[(\overline{X} - \mu)^2] = Var(\overline{X}) = \frac{\sigma^2}{n}$
+
+Substituting these values:
+$$= \sum_{i=1}^n \sigma^2 - n \left( \frac{\sigma^2}{n} \right)$$
+$$= n\sigma^2 - \sigma^2$$ $$= (n-1)\sigma^2$$
+
+**Expected Values of the Estimators**
+
+1.  For the **Biased Estimator** ($\sigma_n^2$):
+    $$E[\sigma_n^2] = E\left[ \frac{1}{n} \sum_{i=1}^n (X_i - \overline{X})^2 \right] = \frac{1}{n} (n-1)\sigma^2 = \frac{n-1}{n}\sigma^2$$
+    Since $E[\sigma_n^2] \neq \sigma^2$, this estimator is biased.
+
+2.  For the **Unbiased Estimator** ($\sigma_{n-1}^2$):
+    $$E[\sigma_{n-1}^2] = E\left[ \frac{1}{n-1} \sum_{i=1}^n (X_i - \overline{X})^2 \right] = \frac{1}{n-1} (n-1)\sigma^2 = \sigma^2$$
+    Since $E[\sigma_{n-1}^2] = \sigma^2$, this estimator is unbiased.
+
+## Task f)
+
+An estimator $\hat{\theta}$ is defined as unbiased if its expected value
+equals the true parameter $\theta$:
+
+$$E[\hat{\theta}] = \theta \quad \iff \quad Bias(\hat{\theta}) = E[\hat{\theta}] - \theta = 0$$ 1.
+Testing the Estimator $\sigma_n^2$
+
+From part (e), we have:
+
+$$E[\sigma_n^2] = \frac{n-1}{n}\sigma^2$$ Calculating the Bias:
+
+$$Bias(\sigma_n^2) = E[\sigma_n^2] - \sigma^2 = \frac{n-1}{n}\sigma^2 - \sigma^2 = \sigma^2 \left( \frac{n-1}{n} - 1 \right) = \sigma^2 \left( \frac{n-1 - n}{n} \right) = \sigma^2 \left( \frac{-1}{n} \right) = -\frac{\sigma^2}{n} $$
+
+Since $Bias(\sigma_n^2) \neq 0$, the estimator $\sigma_n^2$ is biased
+(it systematically underestimates the variance).
+
+2.  Testing the Estimator $\sigma_{n-1}^2$
+
+From part (e), we have:
+
+$$E[\sigma_{n-1}^2] = \sigma^2$$
+
+Calculating the Bias:
+
+$$Bias(\sigma_{n-1}^2) = E[\sigma_{n-1}^2] - \sigma^2 = \sigma^2 - \sigma^2 = 0$$
+Since $Bias(\sigma_{n-1}^2) = 0$, the estimator $\sigma_{n-1}^2$ is
+unbiased.
+
+## Task g)
+
+The results from our task c) are in perfect agreement with the
+theoretical derivations (Tasks e and f).
+
+Theory: we proved mathematically that $E[\sigma_{n-1}^2] = \sigma^2$ and
+$E[\sigma_n^2] = \frac{n-1}{n}\sigma^2$.
+
+Practice: The simulation showed that the average of $\sigma_{n-1}^2$
+over 10,000 runs was almost exactly 4 (the true variance), while the
+average of $\sigma_n^2$ was consistently lower (e.g., $\approx 3.6$ for
+$n=10$), matching the theoretical prediction of systematic
+underestimation.
+
+The fundamental reason $\sigma_n^2$ is biased is that it treats the
+sample mean $\overline{X}$ as if it was the true population mean $\mu$.
+However, $\overline{X}$ is calculated from the data itself, which
+minimizes the sum of squared deviations for that specific sample. This
+makes the deviations $(X_i - \overline{X})^2$ slightly smaller on
+average than $(X_i - \mu)^2$. Dividing by $n-1$ (degrees of freedom)
+instead of $n$ perfectly compensates for this.
+
+Practical Implication: Small Samples: For small datasets (e.g.,
+$n < 30$), using the biased estimator $\sigma_n^2$ leads to a
+significant error. In these cases, using $\sigma_{n-1}^2$ is critical.
+
+Large Samples: As $n \to \infty$, the difference between $\frac{1}{n}$
+and $\frac{1}{n-1}$ becomes negligible. Both estimators converge to the
+true parameter, making $\sigma_n^2$ asymptotically unbiased.
