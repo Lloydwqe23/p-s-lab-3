@@ -75,7 +75,7 @@ $$
 
 ```{r}
 # METHOD 1: EXACT (CHI-SQUARED)
-set.seed(2025) 
+set.seed(23) 
 
 for (n in n_sizes) {
   # Generate data (rows = sims, cols = sample size)
@@ -117,7 +117,7 @@ $$
 
 ```{r}
 # METHOD 2: NORMAL (KNOWN THETA)
-set.seed(2025) 
+set.seed(23) 
 
 for (n in n_sizes) {
   data <- matrix(rexp(n * m, rate = lambda), nrow = m, ncol = n)
@@ -164,7 +164,7 @@ $$
 
 ```{r}
 # METHOD 3: NORMAL (SOLVED INEQUALITY)
-set.seed(2025)
+set.seed(23)
 
 for (n in n_sizes) {
   data <- matrix(rexp(n * m, rate = lambda), nrow = m, ncol = n)
@@ -203,7 +203,7 @@ $$
 
 ```{r}
 # METHOD 4: STUDENT'S T
-set.seed(2025)
+set.seed(23)
 
 for (n in n_sizes) {
   data <- matrix(rexp(n * m, rate = lambda), nrow = m, ncol = n)
@@ -323,38 +323,22 @@ is the best method.
 
 ## Task 2
 
-The Poisson distribution $P(\theta)$ has mean $E[X] = \theta$ and
-variance $Var[X] = \theta$. Our team id number is 23.\
-We aim to evaluate different methods of constructing confidence
-intervals for the parameter θ of a Poisson distribution. The key
-questions are:\
-1)How well do different CI methods capture the true parameter 𝜃 with the
-prescribed confidence level 1-a?\
-2)How do the lengths of the intervals compare in terms of precision?\
-3)Which method is the most practical and reliable for
-Poisson-distributed data?\
-Our main question is how well do the three proposed confidence interval
-constructions perform in capturing the true parameter $\theta$ for
-samples drawn from a Poisson distribution?\
-We will assess this by estimating the coverage probability (the fraction
-of times the interval contains $\theta$) and the precision (the average
-length of the interval) for different sample sizes $n$.\
+The Poisson distribution $P(\theta)$ has mean $E[X] = \theta$ and variance $Var[X] = \theta$. Our team id number is 23.\
+We aim to evaluate different methods of constructing confidence intervals for the parameter θ of a Poisson distribution.
+The methods are:\
+1)CI 2 (Known Variance $\theta$): Assumes the true variance is known ($\sigma^2 = \theta$).
+This is a theoretical benchmark as $\theta$ is the parameter we're estimating.
+$$ \\ \left[\bar{X}_n \mp z*{\alpha/2}\frac{\sqrt{\theta}}{\sqrt{n}}\right]$$\
+2)CI 3 (Parameter-Independent): Solves the quadratic based on the $Z$-statistic to eliminate the variance dependence.\
+3)CI 4 Uses the sample standard deviation $\bar{X}_n$ as an estimate for $\theta$ in the variance $\sigma^2$ and uses
+the $t$-distribution.\
 
-1.Known Variance: Assuming $\theta$ is known for the variance
-$\sigma^2 = \theta$.The $1-\alpha$ confidence interval for $\theta$ is
-derived from
-$|Z| = |\frac{\sqrt{n}(\bar{X}_n - \theta)}{\sqrt{\theta}}| \le z_{\alpha/2}$,
-where $z_{\alpha/2}$ is the $(1-\alpha/2)$-th quantile of
-$N(0, 1)$.$$\left[\bar{X}_n - z_{\alpha/2}\frac{\sqrt{\theta}}{\sqrt{n}}, \quad \bar{X}_n + z_{\alpha/2}\frac{\sqrt{\theta}}{\sqrt{n}}\right]$$\
-2.Parameter-Independent: From Part (2), the defining inequality is
-$\frac{n(\bar{X}_n - \theta)^2}{\theta} \le z_{\alpha/2}^2$. This is a
-quadratic inequality in $\sqrt{\theta}$. Solving
-$\frac{n(\bar{X}_n - \theta)^2}{\theta} = z_{\alpha/2}^2$ for $\theta$
-yields the
-limits:$$\theta_{\pm} = \bar{X}_n + \frac{z_{\alpha/2}^2}{2n} \pm \frac{z_{\alpha/2}}{\sqrt{n}} \sqrt{\bar{X}_n + \frac{z_{\alpha/2}^2}{4n}}$$The
-$1-\alpha$ confidence interval
-is:$$\left[\bar{X}_n + \frac{z_{\alpha/2}^2}{2n} - \frac{z_{\alpha/2}}{\sqrt{n}} \sqrt{\bar{X}_n + \frac{z_{\alpha/2}^2}{4n}}, \quad \bar{X}_n + \frac{z_{\alpha/2}^2}{2n} + \frac{z_{\alpha/2}}{\sqrt{n}} \sqrt{\bar{X}_n + \frac{z_{\alpha/2}^2}{4n}}\right]$$
-3.
+Key questions are:\
+1)How close is the simulated coverage probability (fraction of intervals containing $\theta$) to the nominal level $1-\alpha$?\
+2)How do the lengths of the intervals compare in terms of precision?\
+3)How does the performance (coverage and length) change when moving from a small sample size to a large one?\
+We will assess this by estimating the coverage probability (the fraction of times the interval contains $\theta$)
+and the precision (the average length of the interval) for different sample sizes $n$.\
 
 ```{r}
 id <- 23
@@ -374,30 +358,26 @@ run_simulation <- function(n, theta, M, alpha_vals) {
     for (alpha in alpha_vals) {
         z_alpha2 <- qnorm(1 - alpha / 2)
         
-        # --- Part (2): Theoretical CI (known variance theta, for comparison) ---
-        # CI_2: [X_bar - z_a/2 * sqrt(theta/n), X_bar + z_a/2 * sqrt(theta/n)]
+        #CI2
         L2 <- sample_mean - z_alpha2 * sqrt(theta / n)
         U2 <- sample_mean + z_alpha2 * sqrt(theta / n)
         coverage2 <- mean(theta >= L2 & theta <= U2)
-        length2 <- 2 * z_alpha2 * sqrt(theta / n) # CI length is constant here
+        length2 <- 2 * z_alpha2 * sqrt(theta / n)
         
-        # --- Part (3): Parameter-Independent CI (Solving quadratic) ---
-        # CI_3: [X_bar + z^2/(2n) +/- (z/sqrt(n)) * sqrt(X_bar + z^2/(4n))]
+        #CI3
         a <- z_alpha2^2 / (2 * n)
         b <- (z_alpha2 / sqrt(n))
         
-        L3 <- sample_mean + a - b * sqrt(sample_mean + a / 2) # Note: a/2 = z^2/(4n)
+        L3 <- sample_mean + a - b * sqrt(sample_mean + a / 2)
         U3 <- sample_mean + a + b * sqrt(sample_mean + a / 2)
         
         coverage3 <- mean(theta >= L3 & theta <= U3)
-        length3 <- U3 - L3 # CI length is variable
+        length3 <- U3 - L3
         
-        # --- Part (4): Estimated Variance (Wald/Plug-in CI) ---
-        # CI_4: [X_bar - z_a/2 * sqrt(X_bar/n), X_bar + z_a/2 * sqrt(X_bar/n)]
-        # Note: We cap X_bar at a tiny positive value to avoid sqrt(0) error if all samples are 0.
-        sample_sd <- apply(x, 2, sd)       # sample SD for each simulation
-        se <- sample_sd / sqrt(n)          # standard error of the mean
-        t_alpha2 <- qt(1 - alpha/2, df = n-1)  # t quantile
+        #CI4
+        sample_sd <- apply(x, 2, sd)
+        se <- sample_sd / sqrt(n)
+        t_alpha2 <- qt(1 - alpha/2, df = n-1)
 
         L4 <- sample_mean - t_alpha2 * se
         U4 <- sample_mean + t_alpha2 * se
@@ -412,64 +392,134 @@ run_simulation <- function(n, theta, M, alpha_vals) {
     }
     return(results)
 }
+```
 
+```{r}
 results_N50 <- run_simulation(N_small, theta, M, alpha_vals)
 results_N200 <- run_simulation(N_large, theta, M, alpha_vals)
 
-# --- Output the results ---
-cat("\n## 📊 Simulation Results (theta = 2.3) ##\n")
-cat("\n### 🔬 Sample Size n = 50: Coverage Probability ###\n")
+cat("Simulation Results (theta = 2.3)\n")
+cat("Sample Size n = 50: Coverage Probability\n")
 print(do.call(rbind, lapply(results_N50, function(x) x$Coverage)))
 
-cat("\n### 🔬 Sample Size n = 50: Average CI Length ###\n")
+cat("Sample Size n = 50: Average CI Length\n")
 print(do.call(rbind, lapply(results_N50, function(x) x$Avg_Length)))
 
-cat("\n### 🔬 Sample Size n = 200: Coverage Probability ###\n")
+cat("Sample Size n = 200: Coverage Probability\n")
 print(do.call(rbind, lapply(results_N200, function(x) x$Coverage)))
 
-cat("\n### 🔬 Sample Size n = 200: Average CI Length ###\n")
+cat("Sample Size n = 200: Average CI Length\n")
 print(do.call(rbind, lapply(results_N200, function(x) x$Avg_Length)))
 
-# --- Plotting the sample means (Illustrative Statistics) ---
-cat("\n## 📈 Illustrative Statistics and Histograms ##\n")
 cat(paste("True Parameter theta:", theta, "\n"))
-# Note: Re-running the simulation setup to get fresh data for descriptive stats
+
 x_n50_all <- matrix(rpois(N_small * M, lambda = theta), nrow = N_small)
 x_n200_all <- matrix(rpois(N_large * M, lambda = theta), nrow = N_large)
 cat(paste("Mean of Sample Means (n=50):", mean(colMeans(x_n50_all)), "\n"))
 cat(paste("Mean of Sample Means (n=200):", mean(colMeans(x_n200_all)), "\n"))
 
-# Generate sample means for plotting
 x_n50 <- colMeans(x_n50_all)
 x_n200 <- colMeans(x_n200_all)
 ```
 
+```{r}
+coverage_n50 <- results_N50$alpha_0.05$Coverage
+length_n50 <- results_N50$alpha_0.05$Avg_Length
+
+coverage_n200 <- results_N200$alpha_0.05$Coverage
+length_n200 <- results_N200$alpha_0.05$Avg_Length
+
+coverage_data <- data.frame(
+  Method = c("CI2 (Theoretical)", "CI3", "CI4"),
+  Coverage_n50 = coverage_n50,
+  Coverage_n200 = coverage_n200
+)
+
+length_data <- data.frame(
+  Method = c("CI2 (Theoretical)", "CI3", "CI4"),
+  Length_n50 = length_n50,
+  Length_n200 = length_n200
+)
+
+par(mfrow = c(1, 2), mar = c(10, 4, 3, 1))
+
+barplot(
+  t(coverage_data[, -1]),
+  beside = TRUE,
+  main = "95% Coverage Probability Comparison",
+  ylab = "Simulated Coverage",
+  ylim = c(0.9, 1.0),
+  col = c("lightblue", "darkgreen"),
+  names.arg = coverage_data$Method,
+  las = 2
+)
+
+abline(h = 0.95, col = "red", lty = 2, lwd = 2)
+legend("topleft", legend = c("n=50", "n=200", "Target 0.95"), 
+       fill = c("lightblue", "darkgreen", NA), 
+       border = c("lightblue", "darkgreen", "red"),
+       lty = c(NA, NA, 2), cex = 0.8)
+
+barplot(
+  t(length_data[, -1]),
+  beside = TRUE,
+  main = "95% Average CI Length Comparison",
+  ylab = "Average Length",
+  col = c("lightblue", "darkgreen"),
+  names.arg = length_data$Method,
+  las = 2 
+)
+legend("topleft", legend = c("n=50", "n=200"), 
+       fill = c("lightblue", "darkgreen"), cex = 0.8)
+```
+
 ### Justification
 
-The foundation of all three confidence intervals is the Central Limit
-Theorem
-(CLT).$$\frac{\sqrt{n}(\bar{X}_n - \theta)}{\sigma} \stackrel{d}{\to} N(0, 1) \quad \text{as } n \to \infty$$For
-the Poisson distribution $P(\theta)$, the standard deviation is
-$\sigma = \sqrt{\theta}$.Therefore, the statistic
-$Z = \frac{\sqrt{n}(\bar{X}_n - \theta)}{\sqrt{\theta}}$ is
-approximately standard normal $N(0, 1)$ for large $n$.\
-1)2nd method directly uses the statistic $Z$ and the approximation
-$P(|Z| \le z_{\alpha/2}) \approx 1-\alpha$. The coverage is expected to
-be close to $1-\alpha$ due to the CLT. The simulation confirms this,
-with coverages very close to the target.\
-2)4rd method liminates θ from the CI by solving a quadratic inequality;
-this ensures coverage without knowing the true variance.\
-3)4th method Uses the sample standard deviation and the t-distribution,
-making it practical for real-world scenarios where θ is unknown.
+The foundation of all three confidence intervals is the Central Limit Theorem:
+
+$$
+\frac{\sqrt{n}(\bar{X}_n - \theta)}{\sigma} \stackrel{d}{\to} N(0, 1) \quad \text{as } n \to \infty
+$$
+
+For the Poisson distribution $P(\theta)$, the standard deviation is $\sigma = \sqrt{\theta}$. Therefore, the statistic 
+
+$$
+Z = \frac{\sqrt{n}(\bar{X}_n - \theta)}{\sqrt{\theta}}
+$$ 
+
+is approximately standard normal $N(0, 1)$ for large $n$.
+
+
+1. The 2nd method (theoretical CI) uses true variance and has this interval
+$$\bar{X}_n \pm z_{\alpha/2} \frac{\sqrt{\theta}}{\sqrt{n}}$$, which we get from CLT\
+2. The 3rd method (parameter-independent) Starting from $$|\bar{X}_n - \theta| \le z_{\alpha/2} \frac{\sqrt{\theta}}{\sqrt{n}}$$
+and solving the resulting inequality for θ yields the closed-form quadratic solution
+$$\theta_{\pm} = \bar{X}_n + \frac{z_{\alpha/2}^2}{2n} \pm \frac{z_{\alpha/2}}{\sqrt{n}}\sqrt{\bar{X}_n + \frac{z_{\alpha/2}^2}{4n}}$$.
+This removes the unknown θ from the standard-error\
+3. The 4th method (Student t-based) uses the sample standard deviation and the t-distribution,
+$$\bar{X}_n \pm t_{\alpha/2, n-1} \frac{s}{\sqrt{n}}$$, where s is the sample standard deviation.
+The t-version acknowledges extra uncertainty from estimating the variance and is standard when the original
+data is approximately normal. For Poisson data the individual observations are not normal, but $$\bar{X}_n$$
+is approximately normal for large n.\
 
 ### Conclusion
+From the data we got, we can see that sample mean is getting closer to theoritical 2.3, as n goes to infinity.\
+All intervals provide coverage very close to the nominal $1-\alpha$. As n increases coverage gets slightly better.\
+
+For small n and θ, CI3 tends to overcover because accounts for variability of θ inside the standard error.
+CI4 may under- or over-cover depending on how noisy the sample variance is and how well the t-approximation applies to the mean.
+When $$\bar{X}_n$$ is small the sampling distribution of the sample SD can be skewed, producing undercoverage.\
+
+CI3 is a little bit more precise and better at coverage, but CI4 gets better as sample size gets bigger.
+Though difference is small.\
+
 
 # Part II: Unbiasedness of Estimators
 
 ## Task 3
 
 ```{r}
-set.seed(42)
+set.seed(23)
 n <- 100
 mu <- 10
 sigma_squared <- 4
