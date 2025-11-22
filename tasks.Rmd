@@ -1,6 +1,6 @@
 ---
 title: 'Lab assignment 3'
-author: ""
+author: "Maxim Holovin, Yaropolk Kalmyuk, Mykhailo Rykhalskyi"
 output:
   html_document:
     df_print: paged
@@ -10,6 +10,9 @@ editor_options:
 ---
 
 ## Work breakdown:
+Mykhailo Rykhalskyi - task 1\
+Maxim Holovin - task 2\
+Yaropolk Kalmyuk - task 3
 
 #### Next, generate the messages
 
