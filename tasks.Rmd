@@ -15,9 +15,313 @@ editor_options:
 
 # Part I: Parameter estimation
 
-### Task 1
+## Task 1
 
-### Task 2
+We are estimating the parameter θ (where mean μ=θ) of an Exponential
+distribution. We will test four different methods for constructing
+confidence intervals by running simulations. We will vary the sample
+size n and confidence level (1−α) to see how often each interval
+actually captures the true parameter (Coverage Probability) and how wide
+the intervals are (Precision). Our team id number is 23.
+
+```{r}
+# SETUP
+
+library(ggplot2)
+
+id_num <- 23
+theta <- id_num / 10    
+lambda <- 1 / theta     
+m <- 10000             
+
+alphas <- c(0.1, 0.05, 0.01)
+n_sizes <- c(10, 50, 100, 1000)
+
+results <- data.frame()
+
+# Helper function to calculate coverage and length
+calc_metrics <- function(L, U, true_param) {
+  cov <- mean((true_param >= L) & (true_param <= U))
+  len <- mean(U - L)
+  return(c(cov, len))
+}
+
+print(paste("Simulation initialized for Theta =", theta))
+```
+
+### 1. Method 1: Exact Distribution (Chi-Squared)
+
+This method utilizes the property that the sum of independent
+exponential variables follows a Gamma distribution. Specifically, the
+sample mean $\overline{X}$ and the parameter $\theta$ can be expressed
+with a Chi-squared distribution with $2n$ degrees of freedom.
+
+$$
+\quad \frac{2n\overline{X}}{\theta} \sim \chi^2_{2n}
+$$
+
+To find the $1-\alpha$ confidence interval, we set up:
+
+$$
+P\left( \chi^2_{\alpha/2, 2n} \le \frac{2n\overline{X}}{\theta} \le \chi^2_{1-\alpha/2, 2n} \right) = 1 - \alpha
+$$
+
+By inverting the inequality to isolate $\theta$, we obtain the
+confidence interval:
+
+$$
+\left[ \frac{2n\overline{X}}{\chi^2_{1-\alpha/2, 2n}}, \quad \frac{2n\overline{X}}{\chi^2_{\alpha/2, 2n}} \right]
+$$
+
+```{r}
+# METHOD 1: EXACT (CHI-SQUARED)
+set.seed(2025) 
+
+for (n in n_sizes) {
+  # Generate data (rows = sims, cols = sample size)
+  data <- matrix(rexp(n * m, rate = lambda), nrow = m, ncol = n)
+  x_bar <- rowMeans(data)
+  
+  for (alpha in alphas) {
+    # Chi-square Quantiles
+    q_low <- qchisq(alpha/2, df = 2*n)
+    q_high <- qchisq(1 - alpha/2, df = 2*n)
+    
+    # Interval Calculation
+    L <- (2 * n * x_bar) / q_high
+    U <- (2 * n * x_bar) / q_low
+    
+    # Evaluate
+    stats <- calc_metrics(L, U, theta)
+    results <- rbind(results, data.frame(n=n, alpha=alpha, Method="1. Exact", 
+                                         Cov=stats[1], Len=stats[2]))
+  }
+}
+```
+
+### 2. Method 2: Normal Approximation (Known Variance)
+
+This method assumes the Central Limit Theorem holds and calculates the
+interval as if the population variance ($\sigma^2 = \theta^2$) were
+known.
+
+$$
+Z = \frac{\overline{X} - \theta}{\theta/\sqrt{n}} \sim \mathcal{N}(0, 1)
+$$
+
+The resulting confidence interval is:
+
+$$
+\left[ \overline{X} - z_{1-\alpha/2}\frac{\theta}{\sqrt{n}}, \quad \overline{X} + z_{1-\alpha/2}\frac{\theta}{\sqrt{n}} \right]
+$$
+
+```{r}
+# METHOD 2: NORMAL (KNOWN THETA)
+set.seed(2025) 
+
+for (n in n_sizes) {
+  data <- matrix(rexp(n * m, rate = lambda), nrow = m, ncol = n)
+  x_bar <- rowMeans(data)
+  
+  for (alpha in alphas) {
+    z <- qnorm(1 - alpha/2)
+    
+    margin <- z * (theta / sqrt(n))
+    L <- x_bar - margin
+    U <- x_bar + margin
+    
+    stats <- calc_metrics(L, U, theta)
+    results <- rbind(results, data.frame(n=n, alpha=alpha, Method="2. Norm(Known)", 
+                                         Cov=stats[1], Len=stats[2]))
+  }
+}
+```
+
+### 3. Method 3: Normal Approximation
+
+To remove the dependence on the unknown $\theta$ in the standard error
+term of Method 2, we start with the inequality:
+
+$$
+|\overline{X} - \theta| \le z_{1-\alpha/2} \frac{\theta}{\sqrt{n}}
+$$
+
+Let $k = \frac{z_{1-\alpha/2}}{\sqrt{n}}$. We solve for $\theta$:
+
+$$
+\begin{aligned}
+-k\theta &\le \overline{X} - \theta \le k\theta \\
+\theta - k\theta &\le \overline{X} \le \theta + k\theta \\
+\theta(1 - k) &\le \overline{X} \le \theta(1 + k)
+\end{aligned}
+$$
+
+Inverting for $\theta$ gives the interval:
+
+$$
+\left[ \frac{\overline{X}}{1 + \frac{z_{1-\alpha/2}}{\sqrt{n}}}, \quad \frac{\overline{X}}{1 - \frac{z_{1-\alpha/2}}{\sqrt{n}}} \right]
+$$
+
+```{r}
+# METHOD 3: NORMAL (SOLVED INEQUALITY)
+set.seed(2025)
+
+for (n in n_sizes) {
+  data <- matrix(rexp(n * m, rate = lambda), nrow = m, ncol = n)
+  x_bar <- rowMeans(data)
+  
+  for (alpha in alphas) {
+    z <- qnorm(1 - alpha/2)
+    k <- z / sqrt(n)
+    
+    # Interval Calculation
+    L <- x_bar / (1 + k)
+    U <- x_bar / (1 - k)
+    
+    stats <- calc_metrics(L, U, theta)
+    results <- rbind(results, data.frame(n=n, alpha=alpha, Method="3. Norm(Solved)", 
+                                         Cov=stats[1], Len=stats[2]))
+  }
+}
+```
+
+### 4. Method 4: Student's t-distribution 
+
+This is the standard asymptotic approach when the variance is unknown.
+We estimate the population standard deviation $\sigma$ using the sample
+standard deviation $s$.
+
+$$
+T = \frac{\overline{X} - \theta}{s/\sqrt{n}} \sim t_{n-1}
+$$
+
+The confidence interval is:
+
+$$
+\left[ \overline{X} - t_{n-1, 1-\alpha/2}\frac{s}{\sqrt{n}}, \quad \overline{X} + t_{n-1, 1-\alpha/2}\frac{s}{\sqrt{n}} \right]
+$$
+
+```{r}
+# METHOD 4: STUDENT'S T
+set.seed(2025)
+
+for (n in n_sizes) {
+  data <- matrix(rexp(n * m, rate = lambda), nrow = m, ncol = n)
+  x_bar <- rowMeans(data)
+  s_sd <- apply(data, 1, sd)
+  
+  for (alpha in alphas) {
+    t_val <- qt(1 - alpha/2, df = n - 1)
+    
+    # Interval Calculation
+    margin <- t_val * (s_sd / sqrt(n))
+    L <- x_bar - margin
+    U <- x_bar + margin
+    
+    stats <- calc_metrics(L, U, theta)
+    results <- rbind(results, data.frame(n=n, alpha=alpha, Method="4. Student-t", 
+                                         Cov=stats[1], Len=stats[2]))
+  }
+}
+```
+
+### Results Comparison
+
+```{r}
+library(knitr)
+
+colnames(results)[which(names(results) %in% c("Coverage", "Cov"))] <- "Cov"
+colnames(results)[which(names(results) %in% c("AvgLength", "Length", "Len"))] <- "Len"
+
+clean_results <- results
+colnames(clean_results)[which(names(clean_results) %in% c("Coverage", "Cov"))] <- "Cov"
+colnames(clean_results)[which(names(clean_results) %in% c("AvgLength", "Length", "Len"))] <- "Len"
+
+if (!requireNamespace("knitr", quietly = TRUE)) install.packages("knitr")
+library(knitr)
+
+options(max.print = 100000)
+
+results_sorted <- clean_results[order(clean_results$n, clean_results$Method), ]
+
+unique_alphas <- sort(unique(results_sorted$alpha), decreasing = TRUE)
+
+for (curr_alpha in unique_alphas) {
+
+  conf_level <- (1 - curr_alpha) * 100
+
+  sub_table <- subset(results_sorted, alpha == curr_alpha)
+
+  rownames(sub_table) <- NULL
+
+  cat("\n\n")
+  cat(paste("### Results for Alpha =", curr_alpha, "(", conf_level, "% Confidence )"))
+  cat("\n")
+
+  print(kable(sub_table, digits = 4, row.names = FALSE))
+}
+```
+
+### Lengths & Precision comparison
+
+Precision is measured by the average length of the confidence interval
+(column `Len`). A shorter interval indicates higher precision, provided
+the coverage probability remains valid.
+
+1.  **Effect of Sample Size (**$n$): Across all methods and alpha
+    levels, the length decreases as sample size increases. This follows
+    the $1/\sqrt{n}$ . For example, at $\alpha=0.05$, Method 1's length
+    drops from **3.44** ($n=10$) to **0.28** ($n=1000$).
+
+2.  **Comparing Methods (**$n=10$):
+
+    -   **Method 2 (Normal, Known** $\theta$): Consistently produces the
+        shortest (most precise) intervals (e.g., Len = 2.39 at
+        $\alpha=0.1$). However, this is a theoretical benchmark that is
+        impossible to achieve in practice because it requires knowing
+        the true parameter $\theta$.
+    -   **Method 4 (Student's t):** Produces the second shortest
+        intervals (e.g., Len = 2.46 at $\alpha=0.1$). However, looking
+        at the Coverage column (`Cov`), we see this precision comes at
+        the cost of accuracy (it under-covers the parameter).
+    -   **Method 1 (Exact):** produces moderately sized intervals (Len =
+        2.77 at $\alpha=0.1$). It is wider than Method 2 but necessary
+        to maintain correct coverage.
+    -   **Method 3 (Normal, Solved):** Produces the widest (least
+        precise) intervals at small sample sizes. At $\alpha=0.01$ and
+        $n=10$, the length explodes to **11.12** compared to \~5.0 for
+        Method 1. This is caused by the denominator $(1 - z/\sqrt{n})$
+        becoming very small when $n$ is small.
+
+**Recommendation:** **Method 1 (Exact Distribution using Chi-Squared)**
+is the best method.
+
+**Explanation:**
+
+1.  **Validity (Coverage Probability):** Method 1 maintains the target
+    confidence level ($1-\alpha$) correctly across **all** sample sizes.
+
+    -   Looking at $n=10$ and $\alpha=0.05$ (Target 0.95), Method 1
+        achieves **0.9464**.
+    -   In contrast, **Method 4 (Student's t)** fails significantly at
+        small sample sizes, achieving only **0.8949** coverage when the
+        target is 0.95. This is because the underlying Exponential
+        distribution is highly skewed, violating the normality
+        assumption required for the Student's t-distribution at small
+        $n$.
+
+2.  **Efficiency vs. Method 3:** While **Method 3** (Normal Solved) is a
+    valid asymptotic approach that does not require knowing $\theta$, it
+    is mathematically unstable at small sample sizes. As noted in part
+    (b), its interval length at $n=10$ is excessively large (Len \> 11
+    at $\alpha=0.01$). Method 1 provides a much tighter, more useful
+    interval while maintaining perfect coverage.
+
+3.  **Feasibility vs. Method 2:** **Method 2** requires knowing the true
+    variance (which depends on $\theta$). Since $\theta$ is what we are
+    trying to estimate, Method 2 cannot be used in real-world problems.
+
+## Task 2
 
 The Poisson distribution $P(\theta)$ has mean $E[X] = \theta$ and
 variance $Var[X] = \theta$. Our team id number is 23.\
@@ -162,7 +466,7 @@ making it practical for real-world scenarios where θ is unknown.
 
 # Part II: Unbiasedness of Estimators
 
-### Task 3
+## Task 3
 
 ```{r}
 set.seed(42)
