@@ -567,6 +567,7 @@ results_b <- data.frame(
 
 for (current_n in N_vals) {
     current_dataset <- rnorm(current_n, mean = mu, sd = sigma)
+    current_sample_mean <- mean(current_dataset)
 
     sum_sq_dev <- sum((current_dataset - current_sample_mean)^2)
 
